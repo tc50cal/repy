@@ -1,0 +1,112 @@
+#!/usr/bin/python2
+
+import re
+import sys
+import argparse
+import string
+
+# Example
+# -------
+# Assuming that you made a change of GetFocus to Focus within a go struct and gb raise
+# the following issue:
+#
+# $gb
+# (in gui) building pkg "teledar/gui"
+# gui.go:126: w.GetFocus undefined (type Widget has no field or method GetFocus)
+# 1 broken target
+# (in gui) could not build "teledar/gui"
+#
+# pycre can be used to find the gb errors and print a corresponding list of sed lines that
+# can be used to fix to them:
+# 
+# $gb | pyre -p 'sed -i -e "$LINE s/$REGEX/$REPLACE/" $PKG/$FILE' -c '^\(in (?P<PKG>\S+)\)' -c '\S+\.go:\d+: [^.]+\.?Get(?P<REPLACE>\S+) .*' '(?P<FILE>\S+\.go):(?P<LINE>\d+): [^.]+\.?(?P<REGEX>\S+) .*'
+#
+# In this case the output is just one sed line given that there is only one error
+# sed -i -e "126 s/GetFocus/Focus/"  gui/gui.go
+# 
+# Using the -exec argument would just fix the issues using sed as expected
+
+def form(line, named, other, ctxd, ctxl):
+    line = substitute(line, ctxl)
+    line = substitute(line, other)
+    line = named_substitute(line, ctxd)
+    line = named_substitute(line, named)
+    return line
+
+def substitute(line, subs): 
+    for i, sub in zip(range(1,len(subs)+1), subs):
+        line = line.replace(r'\%s'%i, sub)
+    return line
+
+def named_substitute(line, subs):
+    return string.Template(line).safe_substitute(**subs)
+
+
+def group(expression, line):
+    try:
+        match = re.compile(expression).match(line)
+    except:
+        assert False, 'syntax error:"%s"\n'%regex
+    if match:
+        named = match.groupdict()
+        other = list(match.groups())[len(named):]
+    else:
+        named, other = {}, []
+    return named, other
+
+
+def main(formatter, commands, matched, contexts, dump, regex):
+    code = 0
+    ctxd = {}
+    ctxl = []
+    for line in sys.stdin.readlines():
+        for context in contexts:
+            named, other = group(context, line)
+            ctxd.update(named)
+            ctxl = ctxl[len(other):] + other
+        named, other = group(regex, line)
+        if named or other:
+            if formatter or commands:
+                if commands:
+                    import os
+                    for command in commands:
+                        cmdstr = form(command, named, other, ctxd, ctxl)
+                        code = os.system(cmdstr)
+                        assert code == 0, 'command failed: "%s"'%cmdstr
+                else:
+                    print form(formatter, named, other, ctxd, ctxl)
+            elif matched:
+                #TODO Add context to named and other
+                all_groups = [repr(groups)[1:-1] for groups in [named, other]]
+                print ', '.join(all_groups)
+            else:
+                print line[:-1]
+        if dump:
+            if named or other:
+                #TODO Clean up the printout; its very rough
+                print 'context:', ctxd, ctxl,
+                print 'matched:', named, other
+    return code
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "-print", dest='formatter', metavar='FORMATTER',
+            help="Output FORMATTER with groups as bash vars")
+    parser.add_argument("-c", "-context", action='append', dest='contexts',
+            help='Sets the context (may specify multiple)', default=[])
+    parser.add_argument("-matched", action='store_true',
+            help="Output all matched lines")
+    parser.add_argument("-d", "-dump", action='store_true', dest='dump',
+            help="Dumps all matched items including context")
+    parser.add_argument("-e", "-exec", action='append', metavar='COMMAND',
+            dest='commands', default=[],
+            help="Build a COMMAND to be executed (may specify multiple)")
+    parser.add_argument("regex")
+    namespace = parser.parse_args()
+    try:
+        code = main(namespace.formatter, namespace.commands, namespace.matched, 
+                namespace.contexts, namespace.dump, namespace.regex)
+        sys.exit(code)
+    except AssertionError, e:
+        sys.stderr.write(e.message)
+        sys.exit(1)
