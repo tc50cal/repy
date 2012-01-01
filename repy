@@ -26,25 +26,26 @@ import string
 # 
 # Using the -exec argument would just fix the issues using sed as expected
 
-def form(line, named, other, ctxd, ctxl):
-    line = substitute(line, ctxl)
-    line = substitute(line, other)
-    line = named_substitute(line, ctxd)
-    line = named_substitute(line, named)
+def substitute(line, named, other, ctxd, ctxl, variables):
+    line = substitute_positional(line, ctxl)
+    line = substitute_positional(line, other)
+    line = substitute_named(line, variables)
+    line = substitute_named(line, ctxd)
+    line = substitute_named(line, named)
     return line
 
-def substitute(line, subs): 
+def substitute_positional(line, subs): 
     for i, sub in zip(range(1,len(subs)+1), subs):
         line = line.replace(r'\%s'%i, sub)
     return line
 
-def named_substitute(line, subs):
+def substitute_named(line, subs):
     return string.Template(line).safe_substitute(**subs)
 
 
-def group(expression, line):
+def group(regex, line):
     try:
-        match = re.compile(expression).match(line)
+        match = re.compile(regex).match(line)
     except:
         assert False, 'syntax error:"%s"\n'%regex
     if match:
@@ -55,7 +56,7 @@ def group(expression, line):
     return named, other
 
 
-def main(formatter, commands, matched, contexts, dump, regex):
+def main(formatter, commands, matched, contexts, dump, variables, regex):
     code = 0
     ctxd = {}
     ctxl = []
@@ -70,11 +71,13 @@ def main(formatter, commands, matched, contexts, dump, regex):
                 if commands:
                     import os
                     for command in commands:
-                        cmdstr = form(command, named, other, ctxd, ctxl)
+                        cmdstr = substitute(command, named, other, ctxd, ctxl, 
+                            variables)
                         code = os.system(cmdstr)
                         assert code == 0, 'command failed: "%s"'%cmdstr
                 else:
-                    print form(formatter, named, other, ctxd, ctxl)
+                    print substitute(formatter, named, other, ctxd, ctxl, 
+                        variables)
             elif matched:
                 #TODO Add context to named and other
                 all_groups = [repr(groups)[1:-1] for groups in [named, other]]
@@ -86,6 +89,7 @@ def main(formatter, commands, matched, contexts, dump, regex):
                 #TODO Clean up the printout; its very rough
                 print 'context:', ctxd, ctxl,
                 print 'matched:', named, other
+                print 'variables:', variables
     return code
 
 if __name__ == '__main__':
@@ -94,6 +98,8 @@ if __name__ == '__main__':
             help="Output FORMATTER with groups as bash vars")
     parser.add_argument("-c", "-context", action='append', dest='contexts',
             help='Sets the context (may specify multiple)', default=[])
+    parser.add_argument("-s", "-set", dest='variables',
+            help='VARIABLES is bash style variable string')
     parser.add_argument("-matched", action='store_true',
             help="Output all matched lines")
     parser.add_argument("-d", "-dump", action='store_true', dest='dump',
@@ -103,9 +109,14 @@ if __name__ == '__main__':
             help="Build a COMMAND to be executed (may specify multiple)")
     parser.add_argument("regex")
     namespace = parser.parse_args()
+    if namespace.variables:
+        variables = dict([tuple(v.split('=')) 
+            for v in namespace.variables.split(':')])
+    else:
+        variables = {}
     try:
         code = main(namespace.formatter, namespace.commands, namespace.matched, 
-                namespace.contexts, namespace.dump, namespace.regex)
+                namespace.contexts, namespace.dump, variables, namespace.regex)
         sys.exit(code)
     except AssertionError, e:
         sys.stderr.write(e.message)
