@@ -51,9 +51,16 @@ def group(regex, line):
     if match:
         named = match.groupdict()
         other = list(match.groups())[len(named):]
+        matched = match.group()
     else:
-        named, other = {}, []
-    return named, other
+        named, other, matched = {}, [], ""
+    return named, other, matched
+
+def print_debug(msg):
+    print 'DEBUG:', msg
+
+def print_results(msg):
+    print msg
 
 
 def main(formatter, commands, matched, contexts, dump, variables, regex):
@@ -62,11 +69,11 @@ def main(formatter, commands, matched, contexts, dump, variables, regex):
     ctxl = []
     for line in sys.stdin.readlines():
         for context in contexts:
-            named, other = group(context, line)
+            named, other, matched = group(context, line)
             ctxd.update(named)
             ctxl = ctxl[len(other):] + other
-        named, other = group(regex, line)
-        if named or other:
+        named, other, matched = group(regex, line)
+        if named or other or matched:
             if formatter or commands:
                 if commands:
                     import os
@@ -76,14 +83,17 @@ def main(formatter, commands, matched, contexts, dump, variables, regex):
                         code = os.system(cmdstr)
                         assert code == 0, 'command failed: "%s"'%cmdstr
                 else:
-                    print substitute(formatter, named, other, ctxd, ctxl, 
-                        variables)
-            elif matched:
+                    msg = substitute(formatter, named, other, ctxd, ctxl, 
+                                     variables)
+                    print_results(msg)
+            elif formatter or commands:
                 #TODO Add context to named and other
                 all_groups = [repr(groups)[1:-1] for groups in [named, other]]
-                print ', '.join(all_groups)
+                print_results(', '.join(all_groups))
+            elif not(formatter or commands):
+                print_results(matched)
             else:
-                print line[:-1]
+                print_results(line[:-1])
         if dump:
             if named or other:
                 #TODO Clean up the printout; its very rough
@@ -109,6 +119,9 @@ if __name__ == '__main__':
             help="Build a COMMAND to be executed (may specify multiple)")
     parser.add_argument("regex")
     namespace = parser.parse_args()
+    regex = namespace.regex
+    if regex.strip() == '*': 
+        regex = '.*'
     if namespace.variables:
         variables = dict([tuple(v.split('=')) 
             for v in namespace.variables.split(':')])
@@ -116,7 +129,7 @@ if __name__ == '__main__':
         variables = {}
     try:
         code = main(namespace.formatter, namespace.commands, namespace.matched, 
-                namespace.contexts, namespace.dump, variables, namespace.regex)
+                namespace.contexts, namespace.dump, variables, regex)
         sys.exit(code)
     except AssertionError, e:
         sys.stderr.write(e.message)
