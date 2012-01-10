@@ -1,0 +1,33 @@
+# Maintainer: Your Name <youremail@domain.com>
+
+
+pkgname=repy
+pkgver=0.1
+pkgrel=1
+pkgdesc=""
+arch=(any)
+url=""
+license=('ZanttZ')
+depends=('python2')
+makedepends=()
+provides=()
+conflicts=()
+replaces=()
+backup=()
+options=(!emptydirs)
+install=
+build() {
+  rm -fr "$srcdir/$pkgname-$pkgver" 
+  mkdir "$srcdir/$pkgname-$pkgver"
+
+  cd "$srcdir"/$pkgname-$pkgver
+  mkdir -p "usr/bin"
+  mkdir -p "usr/share/man/man1"
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  cp ../../../repy usr/bin/
+  cp ../../../man/repy.1 usr/share/man/man1/
+  cp -r usr ../../pkg/usr
+}
