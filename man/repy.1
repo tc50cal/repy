@@ -1,0 +1,351 @@
+.TH repy 1 "January 2012" "repy 0.1" "repy Manual" 
+
+.SH NAME
+
+repy - context sensitive stream formatter based on pattern matching
+
+.SH SYNOPSIS
+
+.B repy [
+.I OPTIONS
+.B ] 
+.I PATTERN
+
+.SH AVAILABILITY
+
+archlinux
+
+.SH DESCRIPTION
+
+.B repy 
+searches standard input. When 
+.I PATTERN 
+matches and -print is specified, a print out will be performed. If -exec is specified, repy will execute the corresponding command. In either case, context can be added with -context and a regex. As many context expressions can be applied. Context can also be added via the command line using -set. Context will cascade.
+
+.SH OPTIONS
+
+.SS Generic Program Information
+
+.TP 5
+-h, --help
+shows the help message and exit
+
+.SS Context Control
+
+.TP 5
+-c 
+.I "CONTEXTS" 
+, -context 
+.I CONTEXTS
+Sets the context (may specify multiple)
+
+.TP
+-s VARIABLES, -set VARIABLES
+VARIABLES is bash style variable string
+
+.SS Output Control
+
+.TP 5
+-p FORMATTER, -print FORMATTER
+Output FORMATTER with groups as bash vars
+
+.TP
+-e COMMAND, -exec COMMAND
+Build a COMMAND to be executed (may specify multiple)
+
+.TP
+-matched 
+Output all matched lines
+
+.TP
+-d, -dump
+Dumps all matched items including context
+
+.SH REGULAR EXPRESSIONS
+A regular expression is a pattern that describes a set of strings. Regular expressions are constructed analogously to arithmetic expressions, by using various operators to combine smaller expressions.
+
+repy understands a subset of Python regular expression syntax
+
+.SS Summary
+This is a quick summary of the support expressions.  More in depth descriptions are given below.
+.TP 5
+^
+Matches start of string
+.TP
+?
+Matches 0 or 1 repetition of preceding RE
+.TP
+??
+Non-greedy ?
+.TP
+ .
+Matches any character
+.TP
+(?<=...)
+Matches if the current position in the string is preceded by a match for ... that ends at the current position. This is called a positive lookbehind assertion.
+.TP
+(?<!...)
+Matches if the current position in the string is not preceded by a match for ... this is called a negative lookbehind assertion.
+.TP
+(?=...)
+Matches if ... matches next, but doesn't consume any of the string. This is called a lookahead assertion.
+.TP
+(?:)
+Non-capturing Parenthesis
+.TP
+(?!...)
+Matches if ... doesn't match next.  This is a negative lookahead assertion
+.TP
+(?#...) A comment; the contents of the parentheses are simply ignored.
+.TP
+()
+Capturing Parenthesis
+.TP
+[]
+Character Class
+.TP
+$
+Matches the end of the string
+.TP
+*
+Matches 0 or more repetition of preceding RE
+.TP
+*?
+Non-greedy *
+.TP
+\\\\
+Matches a literal backslash
+.TP
++
+Matches 1 or more repetition of the preceding RE
+.TP
++?
+Non-greedy +
+.TP
+\\A
+Matches only at the start of the string
+.TP
+\\b
+Matches the empty string, but only at the beginning or end of a word
+.TP
+\\B
+Matches the empty string, but only when it is not at the beginning  of end of a word
+.TP
+\\d
+Matches any decimal digit
+.TP
+\\D
+Matches any non-gigit character
+.TP
+{m,n}
+Matches from m to n repetitions of the preceding RE, attempting to match as many repetitions as possible 
+.TP
+{m,n}?
+Matches from m to n repetitions of the preceding RE, attempting to match as few repetitions as possible 
+.TP
+\\number
+Matches the contents of the group of the same number. Groups are numbered starting from 1.
+.TP
+(?P<NAME>...) 
+Similar to regular parentheses, but the substring matched by the group is accessible via the symbolic group named name
+.TP
+(?P=NAME>)
+Matches whatever text was matched by the earlier group named name
+.TP
+\\s
+Matches any whitespace character
+.TP
+\\S
+Matches any non-whitespace character
+.TP
+\\w
+Matches any word
+.TP
+\\W
+Mathes any non-word
+.TP
+\\z
+Matches only at the end of the string
+
+.SS Character Classes and Bracket Expressions
+
+A bracket expression is a list of characters enclosed by [ and ]. It matches any single character in that list; if the first character of the list is the caret ^ then it matches any character not in the list. For example, the regular expression [0123456789] matches any single digit.
+
+Within a bracket expression, a range expression consists of two characters separated by a hyphen. It matches any single character that sorts between the two characters, inclusive, using the locale's collating sequence and character set.
+
+Characters can be listed individually, e.g. [amk] will match 'a', 'm', or 'k'.
+
+Ranges of characters can be indicated by giving two characters and separating them by a '-', for example [a-z] will match any lowercase ASCII letter, [0-5][0-9] will match all the two-digits numbers from 00 to 59, and [0-9A-Fa-f] will match any hexadecimal digit. If - is escaped (e.g. [a\\-z]) or if it’s placed as the first or last character (e.g. [a-]), it will match a literal '-'.
+
+Special characters lose their special meaning inside sets. For example, [(+*)] will match any of the literal characters '(', '+', '*', or ')'.
+
+Character classes such as \\w or \\S (defined below) are also accepted inside a set, although the characters they match depends on whether LOCALE or UNICODE mode is in force.
+
+Characters that are not within a range can be matched by complementing the set. If the first character of the set is '^', all the characters that are not in the set will be matched. For example, [^5] will match any character except '5', and [^^] will match any character except '^'. ^ has no special meaning if it’s not the first character in the set.
+
+To match a literal ']' inside a set, precede it with a backslash, or place it at the beginning of the set. For example, both [()[\\]{}] and []()[{}] will both match a parenthesis.
+
+.SS Anchoring
+The caret ^ and the dollar sign $ are meta-characters that respectively match the empty string at the beginning and end of a line.
+
+.SS Repetition
+.TP 5
+ .
+(Dot.) In the default mode, this matches any character except a newline. If the DOTALL flag has been specified, this matches any character including a newline. 
+
+.TP
+?
+Causes the resulting RE to match 0 or 1 repetitions of the preceding RE. ab? will match either ‘a’ or ‘ab’.
+
+.TP 
+*
+Causes the resulting RE to match 0 or more repetitions of the preceding RE, as many repetitions as are possible. ab* will match ‘a’, ‘ab’, or ‘a’ followed by any number of ‘b’s.
+
+.TP 
++
+Causes the resulting RE to match 1 or more repetitions of the preceding RE. ab+ will match ‘a’ followed by any non-zero number of ‘b’s; it will not match just ‘a’.
+
+.TP
+*?, +?, ??
+The '*', '+', and '?' qualifiers are all greedy; they match as much text as possible. Sometimes this behaviour isn’t desired; if the RE <.*> is matched against '<H1>title</H1>', it will match the entire string, and not just '<H1>'. Adding '?' after the qualifier makes it perform the match in non-greedy or minimal fashion; as few characters as possible will be matched. Using .*? in the previous expression will match only '<H1>'.
+
+.TP
+{m}
+Specifies that exactly m copies of the previous RE should be matched; fewer matches cause the entire RE not to match. For example, a{6} will match exactly six 'a' characters, but not five.
+
+.TP
+{m,n}
+Causes the resulting RE to match from m to n repetitions of the preceding RE, attempting to match as many repetitions as possible. For example, a{3,5} will match from 3 to 5 'a' characters. Omitting m specifies a lower bound of zero, and omitting n specifies an infinite upper bound. As an example, a{4,}b will match aaaab or a thousand 'a' characters followed by a b, but not aaab. The comma may not be omitted or the modifier would be confused with the previously described form.
+
+.TP
+{m,n}?
+Causes the resulting RE to match from m to n repetitions of the preceding RE, attempting to match as few repetitions as possible. This is the non-greedy version of the previous qualifier. For example, on the 6-character string 'aaaaaa', a{3,5} will match 5 'a' characters, while a{3,5}? will only match 3 characters.
+
+.SS Alternation
+
+.TP 5
+A|B
+where A and B can be arbitrary REs, creates a regular expression that will match either A or B. An arbitrary number of REs can be separated by the '|' in this way. This can be used inside groups (see below) as well. As the target string is scanned, REs separated by '|' are tried from left to right. When one pattern completely matches, that branch is accepted. This means that once A matches, B will not be tested further, even if it would produce a longer overall match. In other words, the '|' operator is never greedy. To match a literal '|', use \\|, or enclose it inside a character class, as in [|].
+
+.SS Matching Groups and named Groups
+.TP 5
+(...)
+Matches whatever regular expression is inside the parentheses, and indicates the start and end of a group; the contents of a group can be retrieved after a match has been performed, and can be matched later in the string with the \\number special sequence, described below. To match the literals '(' or ')', use \\( or \\), or enclose them inside a character class: [(] [)].
+
+.TP
+(?P<name>...)
+Matches whatever text was matched by the earlier group named name.
+
+.TP
+(?P=name)
+Matches whatever text was matched by the earlier group named name.
+
+.TP
+(?#...)
+A comment; the contents of the parentheses are simply ignored.
+
+.TP
+(?:...)
+A non-capturing version of regular parentheses. Matches whatever regular expression is inside the parentheses, but the substring matched by the group cannot be retrieved after performing a match or referenced later in the pattern.
+
+.TP
+(?!...) 
+Matches if ... doesn’t match next. This is a negative lookahead assertion. For example, Isaac (?!Asimov) will match 'Isaac ' only if it’s not followed by 'Asimov'.
+
+.TP
+(?<=...)
+Matches if the current position in the string is preceded by a match for ... that ends at the current position. This is called a positive lookbehind assertion. (?<=abc)def will find a match in abcdef, since the lookbehind will back up 3 characters and check if the contained pattern matches. The contained pattern must only match strings of some fixed length, meaning that abc or a|b are allowed, but a* and a{3,4} are not. Note that patterns which start with positive lookbehind assertions will never match at the beginning of the string being searched; you will most likely want to use the search() function rather than the match() function:
+
+.TP
+(?<!...)
+MatMatches if the current position in the string is not preceded by a match for .... This is called a negative lookbehind assertion. Similar to positive lookbehind assertions, the contained pattern must only match strings of some fixed length. Patterns which start with negative lookbehind assertions may match at the beginning of the string being searched.ches if the current position in the string is not preceded by a match for .... This is called a negative lookbehind assertion. Similar to positive lookbehind assertions, the contained pattern must only match strings of some fixed length. Patterns which start with negative lookbehind assertions may match at the beginning of the string being searched.
+
+
+.SS Special sequences 
+
+The special sequences consist of '\\' and a character from the list below. If the ordinary character is not on the list, then the resulting RE will match the second character. For example, \\$ matches the character '$'.
+
+.TP 5
+\\number
+Matches the contents of the group of the same number. Groups are numbered starting from 1. For example, (.+) \\1 matches 'the the' or '55 55', but not 'the end' (note the space after the group). This special sequence can only be used to match one of the first 99 groups. If the first digit of number is 0, or number is 3 octal digits long, it will not be interpreted as a group match, but as the character with octal value number. Inside the '[' and ']' of a character class, all numeric escapes are treated as characters.
+
+.TP
+\\A
+Matches only at the start of the string.
+
+.TP
+\\b
+Matches the empty string, but only at the beginning or end of a word. A word is defined as a sequence of alphanumeric or underscore characters, so the end of a word is indicated by whitespace or a non-alphanumeric, non-underscore character. Note that \\b is defined as the boundary between \\w and \\W, so the precise set of characters deemed to be alphanumeric depends on the values of the UNICODE and LOCALE flags. Inside a character range, \\b represents the backspace character, for compatibility with Python’s string literals.
+
+.TP
+\\B
+Matches the empty string, but only when it is not at the beginning or end of a word. This is just the opposite of \\b, so is also subject to the settings of LOCALE and UNICODE.
+
+.TP
+\\d
+When the UNICODE flag is not specified, matches any decimal digit; this is equivalent to the set [0-9]. With UNICODE, it will match whatever is classified as a decimal digit in the Unicode character properties database.
+
+.TP
+\\D
+When the UNICODE flag is not specified, matches any non-digit character; this is equivalent to the set [^0-9]. With UNICODE, it will match anything other than character marked as digits in the Unicode character properties database.
+
+.TP
+\\s
+When the LOCALE and UNICODE flags are not specified, matches any whitespace character; this is equivalent to the set [ \\t\\n\\r\\f\\v]. With LOCALE, it will match this set plus whatever characters are defined as space for the current locale. If UNICODE is set, this will match the characters [ \\t\\n\\r\\f\\v] plus whatever is classified as space in the Unicode character properties database.
+
+.TP
+\\S
+When the LOCALE and UNICODE flags are not specified, matches any non-whitespace character; this is equivalent to the set [^ \\t\\n\\r\\f\\v] With LOCALE, it will match any character not in this set, and not defined as space in the current locale. If UNICODE is set, this will match anything other than [ \\t\\n\\r\\f\\v] and characters marked as space in the Unicode character properties database.
+
+.TP
+\\w
+When the LOCALE and UNICODE flags are not specified, matches any alphanumeric character and the underscore; this is equivalent to the set [a-zA-Z0-9_]. With LOCALE, it will match the set [0-9_] plus whatever characters are defined as alphanumeric for the current locale. If UNICODE is set, this will match the characters [0-9_] plus whatever is classified as alphanumeric in the Unicode character properties database.
+
+.TP
+\\W
+When the LOCALE and UNICODE flags are not specified, matches any non-alphanumeric character; this is equivalent to the set [^a-zA-Z0-9_]. With LOCALE, it will match any character not in the set [0-9_], and not defined as alphanumeric for the current locale. If UNICODE is set, this will match anything other than [0-9_] and characters marked as alphanumeric in the Unicode character properties database.
+
+.TP
+\\Z
+Matches only at the end of the string. 
+
+.SH CAVEATS
+
+Be careful with using double quotes and mixing the ides of setting/using context verses setting/using environment variables.  They are specified similarly.  See the examples below.
+
+.SH EXAMPLES
+The example section needs more examples
+.SS Using with get
+.TP 3
+Listing all changes from multiple repositories
+$for DIR in path/to/first and/so/on; do pushd $DIR && git status || popd; done | repy -p "$PWD/\\1" '^#\\s+modified:\\s+(\\S+)'
+
+.SS Using with go (gb)
+.TP 3
+Using context to change a method's signature globally without clobbering.
+Assuming that you changed of GetFocus to Focus within a struct named Widget and run gb:
+
+$gb 
+.br
+(in gui) building pkg "teledar/gui"
+.br
+gui.go:126: w.GetFocus undefined (type Widget has no field or method GetFocus)
+.br
+1 broken target
+
+pycre can be used to find the gb errors and print a corresponding list of sed lines that
+can be used to fix to them:
+ 
+$gb | pyre -p 'sed -i -e "$LINE s/$REGEX/$REPLACE/" $PKG/$FILE' -c '^\\(in (?P<PKG>\\S+)\\)' -c '\\S+\\.go:\\d+: [^.]+\\.?Get(?P<REPLACE>\\S+) .*' '(?P<FILE>\\S+\\.go):(?P<LINE>\\d+): [^.]+\\.?(?P<REGEX>\\S+) .*'
+
+In this case the output is just one sed line given that there is only one error
+
+sed -i -e "126 s/GetFocus/Focus/"  gui/gui.go
+
+Using the -exec argument would just fix the issues using sed as expected
+
+
+
+.SH AUTHOR
+
+Chad Hughes <chad@zanttz.com>
