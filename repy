@@ -5,10 +5,8 @@ import sys
 import argparse
 import string
 
-def main(formatter, commands, matched, contexts, dump, variables, regex):
-    code = 0
-    ctxd = {}
-    ctxl = []
+def main(formatter, commands, raw, contexts, dump, variables, regex):
+    code = 0; ctxd = {}; ctxl = []
     for line in sys.stdin.readlines():
         for context in contexts:
             named, other, matched = group(context, line)
@@ -16,32 +14,24 @@ def main(formatter, commands, matched, contexts, dump, variables, regex):
             ctxl = ctxl[len(other):] + other
         named, other, matched = group(regex, line)
         if named or other or matched:
-            if formatter or commands:
-                if commands:
-                    import os
-                    for command in commands:
-                        cmdstr = substitute(command, named, other, ctxd, ctxl, 
-                            variables)
-                        code = os.system(cmdstr)
-                        assert code == 0, 'command failed: "%s"'%cmdstr
-                else:
-                    msg = substitute(formatter, named, other, ctxd, ctxl, 
-                                     variables)
-                    print_results(msg)
-            elif formatter or commands:
-                #TODO Add context to named and other
-                all_groups = [repr(groups)[1:-1] for groups in [named, other]]
-                print_results(', '.join(all_groups))
-            elif not(formatter or commands):
-                print_results(matched)
-            else:
-                print_results(line[:-1])
-        if dump:
-            if named or other:
-                #TODO Clean up the printout; its very rough
-                print 'context:', ctxd, ctxl,
-                print 'matched:', named, other
-                print 'variables:', variables
+            if dump and not raw:
+                print {'named': named, 'other': other, 'matched': matched,
+                       'variables': variables, 'context': [ctxl, ctxd]}
+            elif commands and not dump: # Handles commands and or raw
+                import os
+                for ctrl, command in commands:
+                    cmdstr = substitute(command, named, other, ctxd, ctxl, 
+                        variables)
+                    code = os.system(cmdstr)
+                    assert code == 0, 'command failed: "%s"'%cmdstr
+                    if ctrl == 't':   # Tee command string to stdout
+                        print cmdstr
+                    elif ctrl == 'r': # Write raw matched line to stdout
+                        print matched
+            elif formatter and not raw:
+                print substitute(formatter, named, other, ctxd, ctxl, variables)
+            elif raw:
+                print matched
     return code
 
 def group(regex, line):
@@ -74,14 +64,6 @@ def substitute_named(line, subs):
     return string.Template(line).safe_substitute(**subs)
 
 
-def print_debug(msg):
-    print 'DEBUG:', msg
-
-def print_results(msg):
-    print msg
-
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "-print", dest='formatter', metavar='FORMATTER',
@@ -90,16 +72,35 @@ if __name__ == '__main__':
             help='Sets the context (may specify multiple)', default=[])
     parser.add_argument("-s", "-set", dest='variables',
             help='VARIABLES is bash style variable string')
-    parser.add_argument("-matched", action='store_true',
-            help="Output all matched lines")
-    parser.add_argument("-d", "-dump", action='store_true', dest='dump',
-            help="Dumps all matched items including context")
+    parser.add_argument("-d", "-debug", "-dump", action='store_true',
+            dest='dump', 
+            help="Dumps all match items including context, as a python "
+                 "dictionary, overriding all printing directive "
+                 "(other than -r) and all command directives (other than -b)")
     parser.add_argument("-e", "-exec", action='append', metavar='COMMAND',
             dest='commands', default=[],
             help="Build a COMMAND to be executed (may specify multiple)")
+    parser.add_argument("-t", "-tee", action='append', metavar='COMMAND',
+            dest='tees', default=[],
+            help="Acts on COMMAND like -e but prints as well")
+    parser.add_argument("-r", "-raw", action='store_true', dest='raw',
+            help="Overrides all printing options by writing the raw matched "
+                 "lines to standard output.  In the case of -e or -t, COMMAND "
+                 "is still executed as long as -d or -b is not specified")
+    parser.add_argument("-b", "-bypass", action='store_true', dest='bypass',
+            help="Overrides all directives and simply writes every line from "
+                 "standard input directly to standard output")
     parser.add_argument("regex")
     namespace = parser.parse_args()
+    if namespace.bypass: # Must be first thing done to bypass everything
+        for line in sys.stdin.readlines():
+            print line[:-1]
+        sys.exit(0)
     regex = namespace.regex
+    commands = [('',command) for command in namespace.commands]
+    commands += [('t',command) for command in namespace.tees]
+    if namespace.raw:
+        commands = [('r',command) for _, command in commands]
     if regex.strip() == '*': 
         regex = '.*'
     if namespace.variables:
@@ -108,7 +109,7 @@ if __name__ == '__main__':
     else:
         variables = {}
     try:
-        code = main(namespace.formatter, namespace.commands, namespace.matched, 
+        code = main(namespace.formatter, commands, namespace.raw, 
                 namespace.contexts, namespace.dump, variables, regex)
         sys.exit(code)
     except AssertionError, e:

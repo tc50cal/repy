@@ -18,111 +18,123 @@ archlinux
 .SH DESCRIPTION
 
 .B repy 
-searches standard input. When 
+searches standard input for
 .I PATTERN 
-matches and -print is specified, a print out will be performed. If -exec is specified, repy will execute the corresponding command. In either case, context can be added with -context and a regex. As many context expressions can be applied. Context can also be added via the command line using -set. Context will cascade.
+(using Python complaint regular expressions). When a match is located and -print is specified, a print out will be performed. If -exec is specified, 
+.B repy 
+will execute the corresponding command. In either case, context can be added (using Python complaint regular expressions) with -context and a regex. As many context expressions can be applied. Context can also be added via the command line using -set. Context will cascade.
 
 .SH OPTIONS
 
 .SS Generic Program Information
 
 .TP 5
--h, --help
+.B -h, --help
 shows the help message and exit
 
 .SS Context Control
 
 .TP 5
--c 
+.B -c 
 .I "CONTEXTS" 
 , -context 
 .I CONTEXTS
 Sets the context (may specify multiple)
 
 .TP
--s VARIABLES, -set VARIABLES
+.B -s VARIABLES, -set VARIABLES
 VARIABLES is bash style variable string
 
 .SS Output Control
 
 .TP 5
--p FORMATTER, -print FORMATTER
+.B -p FORMATTER, -print FORMATTER
 Output FORMATTER with groups as bash vars
 
 .TP
--e COMMAND, -exec COMMAND
-Build a COMMAND to be executed (may specify multiple)
+.B -e | -t COMMAND, -exec | -tee COMMAND
+Build a COMMAND to be executed (may specify multiple).  If -tee is used, COMMAND will be printed on standard output as well.
 
 .TP
--matched 
-Output all matched lines
+.B -d, -degub, -dump
+Overrides all printing options except -raw, and all command directives except -bypass, by dumping all match items and context(in the form of a python dictionary} to standard output.
 
 .TP
--d, -dump
-Dumps all matched items including context
+.B -r, -raw 
+Overrides all printing options by writing the raw matched lines to standard output.  In the case of -e or -t, COMMAND is still executed unless -d or -b is specified.  Therefore, to override all printing directives and command directives, use -dr.  This is useful for debugging expressions by suppressing command execution and showing the raw matched input lines.
+
+.TP
+.B -b, -bypass 
+Overrides all directives and simply writes every line from standard input directly to standard output.  This is useful for debugging the use of
+.B repy
+within tool chains or scripts by bypassing the logic of complicated arguments and expressions. 
+
+
 
 .SH REGULAR EXPRESSIONS
 A regular expression is a pattern that describes a set of strings. Regular expressions are constructed analogously to arithmetic expressions, by using various operators to combine smaller expressions.
 
-repy understands a subset of Python regular expression syntax
+.B repy 
+understands a subset of Python regular expression syntax
 
 .SS Summary
 This is a quick summary of the support expressions.  More in depth descriptions are given below.
 .TP 5
-^
+.B ^
 Matches start of string
 .TP
-?
+.B ?
 Matches 0 or 1 repetition of preceding RE
 .TP
-??
+.B ??
 Non-greedy ?
 .TP
- .
+.B  .
 Matches any character
 .TP
-(?<=...)
+.B (?<=...)
 Matches if the current position in the string is preceded by a match for ... that ends at the current position. This is called a positive lookbehind assertion.
 .TP
-(?<!...)
+.B (?<!...)
 Matches if the current position in the string is not preceded by a match for ... this is called a negative lookbehind assertion.
 .TP
-(?=...)
+.B (?=...)
 Matches if ... matches next, but doesn't consume any of the string. This is called a lookahead assertion.
 .TP
-(?:)
+.B (?:)
 Non-capturing Parenthesis
 .TP
-(?!...)
+.B (?!...)
 Matches if ... doesn't match next.  This is a negative lookahead assertion
 .TP
-(?#...) A comment; the contents of the parentheses are simply ignored.
+.B (?#...) 
+A comment; the contents of the parentheses are simply ignored.
 .TP
-()
+.B ()
 Capturing Parenthesis
 .TP
 []
 Character Class
 .TP
-$
+.B $
 Matches the end of the string
 .TP
-*
+.B *
 Matches 0 or more repetition of preceding RE
 .TP
-*?
+.B *?
 Non-greedy *
 .TP
-\\\\
+.B \\\\
 Matches a literal backslash
 .TP
-+
+.B +
 Matches 1 or more repetition of the preceding RE
 .TP
-+?
+.B +?
 Non-greedy +
 .TP
-\\A
+.B \\A
 Matches only at the start of the string
 .TP
 \\b
