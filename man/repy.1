@@ -39,7 +39,7 @@ shows the help message and exit
 .I "CONTEXTS" 
 , -context 
 .I CONTEXTS
-Sets the context (may specify multiple)
+Sets the context (may specify multiple).  The expression must match the line for acceptance.  However groupings can be used to use parts of the result.
 
 .TP
 .B -s VARIABLES, -set VARIABLES
@@ -327,7 +327,7 @@ Be careful with using double quotes and mixing the ides of setting/using context
 
 .SH EXAMPLES
 The example section needs more examples
-.SS Using with get
+.SS Using with git
 .TP 3
 Listing all changes from multiple repositories
 $for DIR in path/to/first and/so/on; do pushd $DIR && git status || popd; done | repy -p "$PWD/\\1" '^#\\s+modified:\\s+(\\S+)'
