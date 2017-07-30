@@ -1,0 +1,3 @@
+repy
+
+A context sensitive stream formatter (using python regex dialect) for composing tool chains complementing find, grep, sed, and other stram manipulators by scanning standard input and emiting output when a match is located.  It is possible to build output strings, which are bash executable and to perform their execution when -exec is specified. In either case, context can be added (using Python complaint regular expressions) with -context and a regex. As many context expressions can be applied. Context can also be added via the command line using -set. Context will cascade.  So, while monadic tools like find, grep, sed, and others are often piped togther as context-free filters within chain, repy can glue them together using context accoss the chain.
