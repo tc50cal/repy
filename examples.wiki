@@ -1,0 +1,19 @@
+= Using With git =
+basic file name parser for modified files
+git status | repy -p '$FILE' '^\s+modified:\s+(?P<FILE>.*)$'
+
+Note about protecting repy envrionment from bash: use single quotes to protect them otherwiase bash will replace $FILE first, so the following will not work as expected.  In this case $FILE does not exist in the bash environment and will be evaluated as an empy string.
+
+git status | repy -p "$FILE" '^\s+modified:\s+(?P<FILE>.*)$'
+
+
+== Parsing Path Strings of Modified Files ==
+git status | repy -p '$PATH/$FILE' '^\s+modified:\s+(?P<PATH>.*)/(?P<FILE>[^/]+\.[^.]+)\n$'
+
+Note: /(?P<FILE>[^/]+\.[^.]+)\n$
+Means anything afgter the forward slash that isn't a slash followed by a dot followed by anthing that isn't a dot followed by but not includeing the newline character.
+
+
+
+== git mv name mangling ==
+git status | repy -p 'git mv "$PATH/$FILE.$EXT $PATH/$FILE.template.$EXT' '^\s+modified:\s+(?P<PATH>.*)/(?P<FILE>[^/]+)\.(?P<EXT>[^.]+)\n$'
