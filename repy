@@ -30,7 +30,9 @@ def main(formatter, commands, raw, contexts, dump, variables, regex):
                     cmdstr = substitute(command, named, other, ctxd, ctxl, 
                         variables)
                     code = os.system(cmdstr)
-                    assert code == 0, 'command failed: "%s"'%cmdstr
+                    #assert code == 0, 'command failed: "%s"'%cmdstr
+                    if code != 0: 
+                        sys.stderr.write('command failed: "%s"'%cmdstr)
                     if ctrl == 't':   # Tee command string to stdout
                         print cmdstr
                     elif ctrl == 'r': # Write raw matched line to stdout
