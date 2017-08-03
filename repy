@@ -15,8 +15,15 @@ def main(formatter, commands, raw, contexts, dump, variables, regex):
         named, other, matched = group(regex, line)
         if named or other or matched:
             if dump and not raw:
-                print {'named': named, 'other': other, 'matched': matched,
+                data = {'named': named, 'other': other, 'matched': matched,
                        'variables': variables, 'context': [ctxl, ctxd]}
+                if 'all' in dump:
+                    print data 
+                else:
+                    print dict([(k,v) for k, v 
+                                 in data.items()
+                                 if k in dump
+                        ])
             elif commands and not dump: # Handles commands and or raw
                 import os
                 for ctrl, command in commands:
@@ -72,11 +79,11 @@ if __name__ == '__main__':
             help='Sets the context (may specify multiple)', default=[])
     parser.add_argument("-s", "-set", dest='variables',
             help='VARIABLES is bash style variable string')
-    parser.add_argument("-d", "-debug", "-dump", action='store_true',
-            dest='dump', 
+    parser.add_argument("-dump", action='append', metavar='DATA', dest='dump', 
             help="Dumps all match items including context, as a python "
                  "dictionary, overriding all printing directive "
-                 "(other than -r) and all command directives (other than -b)")
+                 "(other than -r) and all command directives (other than -b)"
+                 "The options are named, matched, context, variables, other, all")
     parser.add_argument("-e", "-exec", action='append', metavar='COMMAND',
             dest='commands', default=[],
             help="Build a COMMAND to be executed (may specify multiple)")
